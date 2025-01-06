@@ -133,14 +133,62 @@
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p>Contato: (XX) XXXX-XXXX</p>
-                    <p>Email: contato@infoway.com.br</p>
+                    <p>Email: contato@infowaynet.com.br</p>
                 </div>
             </div>
         </div>
     </footer>
 
+    <!-- WhatsApp Button -->
+    <a href="https://wa.me/5511999999999" class="whatsapp-float">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAulW5Sh-3wB934-I-mPsF10zz8ePfih60",
+            authDomain: "infoway-3e75e.firebaseapp.com",
+            projectId: "infoway-3e75e",
+            storageBucket: "infoway-3e75e.firebasestorage.app",
+            messagingSenderId: "588574057048",
+            appId: "1:588574057048:web:c765583f8351dc3f1a202d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Form submission handling
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                nome: this.querySelector('input[placeholder="Nome completo"]').value,
+                email: this.querySelector('input[placeholder="E-mail"]').value,
+                telefone: this.querySelector('input[placeholder="Telefone"]').value,
+                mensagem: this.querySelector('textarea[placeholder="Mensagem"]').value,
+                dataEnvio: new Date().toISOString()
+            };
+
+            // Save to Firebase
+            db.collection('leads').add(formData)
+                .then(() => {
+                    alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
+                    this.reset();
+                })
+                .catch((error) => {
+                    console.error("Erro ao enviar mensagem: ", error);
+                    alert('Ocorreu um erro ao enviar a mensagem. Por favor, tente novamente.');
+                });
+        });
+
         // Smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -149,13 +197,6 @@
                     behavior: 'smooth'
                 });
             });
-        });
-
-        // Form submission handling
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
-            this.reset();
         });
     </script>
 </body>
