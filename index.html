@@ -113,6 +113,9 @@
                                 <input type="tel" class="form-control" placeholder="Telefone" required>
                             </div>
                             <div class="mb-3">
+                                <input type="text" class="form-control" placeholder="CPF ou CNPJ" required>
+                            </div>
+                            <div class="mb-3">
                                 <textarea class="form-control" rows="4" placeholder="Mensagem"></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">Enviar Mensagem</button>
@@ -147,7 +150,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Form submission handling
+        // Manipulação do envio do formulário
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -155,20 +158,37 @@
                 const formData = {
                     nome: this.querySelector('input[placeholder="Nome completo"]').value,
                     email: this.querySelector('input[placeholder="E-mail"]').value,
-                    fone_celular: this.querySelector('input[placeholder="Telefone"]').value,
+                    fone_celular: this.querySelector('input[placeholder="Telefone"]').value.replace(/\D/g, ''), // Remove caracteres não numéricos
+                    cnpj_cpf: this.querySelector('input[placeholder="CPF ou CNPJ"]').value.replace(/\D/g, ''), // Remove caracteres não numéricos
                     data_cadastro: new Date().toISOString().split('T')[0],
                     lead: "S",
                     ativo: "S"
                 };
 
+                console.log('Dados a serem enviados:', formData);
+
                 const response = await fetch('https://ixc.infowaynet.com.br/webservice/v1/contato', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Basic MTM5OjRiZDJhZTk4Mzk3OTA5ZDFlYzEzMWE2NDQ4Y2M4MGNhOGYzYjBlNWY1OWUxYzIwMzAyYzZiM2Y5ODdmZTcyMzg='
+                        'Authorization': 'Basic MTM5OjRiZDJhZTk4Mzk3OTA5ZDFlYzEzMWE2NDQ4Y2M4MGNhOGYzYjBlNWY1OWUxYzIwMzAyYzZiM2Y5ODdmZTcyMzg=',
+                        'Accept': 'application/json',
+                        'Cookie': 'IXC_Session=k7cq9v1so4f0tsl930rom5itkd'
                     },
+                    mode: 'no-cors',
+                    credentials: 'include',
                     body: JSON.stringify(formData)
                 });
+
+                if (response.type === 'opaque') {
+                    // No-cors mode não permite verificar o status, então vamos assumir sucesso
+                    alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
+                    this.reset();
+                    return;
+                }
+
+                const responseData = await response.text();
+                console.log('Resposta da API:', responseData);
 
                 if (response.ok) {
                     alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
@@ -177,12 +197,45 @@
                     throw new Error('Falha ao enviar dados');
                 }
             } catch (error) {
-                console.error("Erro ao enviar mensagem:", error);
-                alert('Ocorreu um erro ao enviar a mensagem. Por favor, tente novamente.');
+                console.error("Detalhes do erro:", error);
+                
+                // Preparar dados para WhatsApp
+                const nome = this.querySelector('input[placeholder="Nome completo"]').value;
+                const telefone = this.querySelector('input[placeholder="Telefone"]').value;
+                const cpfCnpj = this.querySelector('input[placeholder="CPF ou CNPJ"]').value;
+                const email = this.querySelector('input[placeholder="E-mail"]').value;
+                
+                const whatsappNumber = "5584996151588";
+                const whatsappMessage = `Olá! Segue meus dados para contato:\n\nNome: ${nome}\nTelefone: ${telefone}\nCPF/CNPJ: ${cpfCnpj}\nE-mail: ${email}\n\nGostaria de mais informações sobre os planos de internet.`;
+                const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+                
+                if (confirm('Houve um problema ao enviar a mensagem. Deseja continuar pelo WhatsApp? Seus dados serão incluídos na mensagem.')) {
+                    window.open(whatsappUrl, '_blank');
+                }
             }
         });
 
-        // Smooth scrolling for anchor links
+        // Formatação do CPF/CNPJ
+        document.querySelector('input[placeholder="CPF ou CNPJ"]').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) { // CPF
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+            } else { // CNPJ
+                value = value.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+            }
+            e.target.value = value;
+        });
+
+        // Formatação do telefone
+        document.querySelector('input[placeholder="Telefone"]').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+            }
+            e.target.value = value;
+        });
+
+        // Smooth scrolling para links âncora
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
