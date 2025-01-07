@@ -145,48 +145,41 @@
     </a>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAulW5Sh-3wB934-I-mPsF10zz8ePfih60",
-            authDomain: "infoway-3e75e.firebaseapp.com",
-            projectId: "infoway-3e75e",
-            storageBucket: "infoway-3e75e.firebasestorage.app",
-            messagingSenderId: "588574057048",
-            appId: "1:588574057048:web:c765583f8351dc3f1a202d"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
         // Form submission handling
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = {
-                nome: this.querySelector('input[placeholder="Nome completo"]').value,
-                email: this.querySelector('input[placeholder="E-mail"]').value,
-                telefone: this.querySelector('input[placeholder="Telefone"]').value,
-                mensagem: this.querySelector('textarea[placeholder="Mensagem"]').value,
-                dataEnvio: new Date().toISOString()
-            };
+            try {
+                const formData = {
+                    nome: this.querySelector('input[placeholder="Nome completo"]').value,
+                    email: this.querySelector('input[placeholder="E-mail"]').value,
+                    fone_celular: this.querySelector('input[placeholder="Telefone"]').value,
+                    data_cadastro: new Date().toISOString().split('T')[0],
+                    lead: "S",
+                    ativo: "S"
+                };
 
-            // Save to Firebase
-            db.collection('leads').add(formData)
-                .then(() => {
+                const response = await fetch('https://ixc.infowaynet.com.br/webservice/v1/contato', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic MTM5OjRiZDJhZTk4Mzk3OTA5ZDFlYzEzMWE2NDQ4Y2M4MGNhOGYzYjBlNWY1OWUxYzIwMzAyYzZiM2Y5ODdmZTcyMzg='
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
                     alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
                     this.reset();
-                })
-                .catch((error) => {
-                    console.error("Erro ao enviar mensagem: ", error);
-                    alert('Ocorreu um erro ao enviar a mensagem. Por favor, tente novamente.');
-                });
+                } else {
+                    throw new Error('Falha ao enviar dados');
+                }
+            } catch (error) {
+                console.error("Erro ao enviar mensagem:", error);
+                alert('Ocorreu um erro ao enviar a mensagem. Por favor, tente novamente.');
+            }
         });
 
         // Smooth scrolling for anchor links
