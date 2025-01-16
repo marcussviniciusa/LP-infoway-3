@@ -188,6 +188,11 @@
                 const phone = this.querySelector('[name="phone"]').value;
                 const cpfCnpj = this.querySelector('[name="cpf_cnpj"]').value;
                 
+                // Validar dados obrigatórios
+                if (!nome || !email || !phone || !cpfCnpj) {
+                    throw new Error('Por favor, preencha todos os campos obrigatórios.');
+                }
+
                 // Rastrear evento via pixel (com tratamento de erro)
                 try {
                     if (typeof fbq === 'function') {
@@ -197,36 +202,11 @@
                             currency: 'BRL'
                         });
                     } else {
-                        console.warn('Pixel do Facebook não encontrado');
+                        console.warn('Pixel do Facebook não encontrado - evento será enviado apenas via API');
                     }
                 } catch (pixelError) {
                     console.warn('Erro ao enviar evento para o pixel:', pixelError);
                 }
-                
-                // Preparar dados para API de Conversões
-                const userData = {
-                    client_user_agent: navigator.userAgent,
-                    client_ip: null // O IP será capturado pelo servidor
-                };
-                
-                if (email) {
-                    const emailHash = await sha256(email.toLowerCase().trim());
-                    userData.em = [emailHash];
-                }
-                
-                if (phone) {
-                    const phoneClean = phone.replace(/\D/g, '');
-                    const phoneHash = await sha256(phoneClean);
-                    userData.ph = [phoneHash];
-                }
-                
-                // Enviar evento via API de Conversões
-                await sendMetaEvent('Lead', userData, {
-                    currency: 'BRL',
-                    value: 0,
-                    lead_type: 'Formulário de Contato',
-                    content_name: 'Formulário de Contato'
-                });
 
                 // Preparar dados para a API do IXC
                 const formData = {
@@ -241,6 +221,7 @@
 
                 console.log('Dados a serem enviados:', formData);
 
+                // Tentar criar o lead
                 const response = await fetch('/api/create-lead', {
                     method: 'POST',
                     headers: {
@@ -248,6 +229,11 @@
                     },
                     body: JSON.stringify(formData)
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao enviar formulário');
+                }
 
                 const responseData = await response.json();
                 console.log('Resposta da API:', responseData);
@@ -260,19 +246,14 @@
                 }
             } catch (error) {
                 console.error("Detalhes do erro:", error);
+                alert(`Desculpe, ocorreu um erro: ${error.message}`);
                 
-                // Preparar dados para WhatsApp
-                const nome = this.querySelector('[name="nome"]').value;
-                const telefone = this.querySelector('[name="phone"]').value;
-                const cpfCnpj = this.querySelector('[name="cpf_cnpj"]').value;
-                const email = this.querySelector('[name="email"]').value;
-                
+                // Se houver erro, oferece alternativa via WhatsApp
                 const whatsappNumber = "5584996151588";
-                const whatsappMessage = `Olá! Segue meus dados para contato:\n\nNome: ${nome}\nTelefone: ${telefone}\nCPF/CNPJ: ${cpfCnpj}\nE-mail: ${email}\n\nGostaria de mais informações sobre os planos de internet.`;
-                const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+                const whatsappMessage = `Olá! Tentei enviar pelo formulário mas tive um problema. Seguem meus dados para contato:\n\nNome: ${nome}\nTelefone: ${phone}\nCPF/CNPJ: ${cpfCnpj}\nE-mail: ${email}\n\nGostaria de mais informações sobre os planos de internet.`;
                 
-                if (confirm('Houve um problema ao enviar a mensagem. Deseja continuar pelo WhatsApp? Seus dados serão incluídos na mensagem.')) {
-                    window.open(whatsappUrl, '_blank');
+                if (confirm('Deseja tentar enviar os dados via WhatsApp?')) {
+                    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
                 }
             }
         });

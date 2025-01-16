@@ -3,12 +3,21 @@
   "builds": [
     { "src": "*.html", "use": "@vercel/static" },
     { "src": "*.css", "use": "@vercel/static" },
-    { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "public/**/*", "use": "@vercel/static" }
+    { "src": "public/**/*", "use": "@vercel/static" },
+    { "src": "api/*.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/files/(.*)", "dest": "/public/files/$1" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { 
+      "src": "/api/(.*)", 
+      "dest": "/api/$1.js"
+    },
+    { 
+      "src": "/files/(.*)", 
+      "dest": "/public/files/$1" 
+    },
+    { 
+      "src": "/(.*)", 
+      "dest": "/$1" 
+    }
   ]
 }
