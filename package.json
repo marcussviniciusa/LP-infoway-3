@@ -1,0 +1,9 @@
+{
+  "name": "infoway-lp",
+  "version": "1.0.0",
+  "description": "Landing Page Infoway",
+  "main": "index.js",
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  }
+}

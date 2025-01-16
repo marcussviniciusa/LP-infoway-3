@@ -150,9 +150,57 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Função para enviar eventos para a API do Meta
+        async function sendMetaEvent(eventName, userData = {}, customData = {}) {
+            try {
+                const response = await fetch('/api/meta-conversion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        eventName,
+                        userData,
+                        customData
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to send event');
+                }
+            } catch (error) {
+                console.error('Error sending event:', error);
+            }
+        }
+
         // Manipulação do envio do formulário
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Rastrear evento via pixel
+            fbq('track', 'Lead');
+            
+            // Rastrear evento via API de Conversões
+            const email = this.querySelector('[name="email"]')?.value;
+            const phone = this.querySelector('[name="phone"]')?.value;
+            
+            const userData = {
+                client_user_agent: navigator.userAgent
+            };
+            
+            if (email) {
+                userData.em = [sha256(email.toLowerCase().trim())];
+            }
+            
+            if (phone) {
+                userData.ph = [sha256(phone.replace(/[^0-9]/g, ''))];
+            }
+            
+            await sendMetaEvent('Lead', userData, {
+                currency: 'BRL',
+                value: 0,
+                lead_type: 'Formulário de Contato'
+            });
             
             try {
                 const formData = {
@@ -214,6 +262,29 @@
                 }
             }
         });
+
+        // Adicionar rastreamento de eventos nos botões de WhatsApp
+        document.querySelectorAll('a[href*="wa.me"]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Rastrear evento via pixel
+                fbq('track', 'Contact');
+                
+                // Rastrear evento via API de Conversões
+                sendMetaEvent('Contact', {
+                    client_user_agent: navigator.userAgent
+                });
+            });
+        });
+
+        // Função para gerar hash SHA-256
+        async function sha256(str) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(str);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
 
         // Formatação do CPF/CNPJ
         document.querySelector('input[placeholder="CPF ou CNPJ"]').addEventListener('input', function(e) {
