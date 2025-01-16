@@ -2,7 +2,7 @@
 
 function sendMetaConversionEvent($eventName, $userData = [], $customData = []) {
     $pixelId = '780740704041293';
-    $accessToken = 'EAATYDfZBaIVgBO5M8pDoytbLOZAwvlTZCaiWWuXMNwyygeRbZCXrQ2DBgUJ37s5Ie8YC9blFKe2aAA7XgpRL...';
+    $accessToken = 'EAATYDfZBaIVgBOZCIPI6ZBZCxCoOFXMfGLptpJhCZCQkzUZBFZBwIBBdZBjzrOTPXFdZC17aXkAxyvokzJTTO7VRJiiJBt7iFK3cdmAAJZBaEJy9OX9Ys3MsNKCuW19EQ0M3nV1ZBxltssfQHjR5e13Htm0ovcUPT2r1ZCUcC8ZAYUkLbxe3Ivo9d1H4We9s4QKlqJSFf7AZDZD';
     
     $url = "https://graph.facebook.com/v16.0/{$pixelId}/events?access_token={$accessToken}";
     
