@@ -104,19 +104,19 @@
                         <h2 class="text-center mb-4">Fale Conosco</h2>
                         <form id="contactForm">
                             <div class="mb-3">
-                                <input type="text" class="form-control" placeholder="Nome completo" required>
+                                <input type="text" class="form-control" name="nome" placeholder="Nome completo" required>
                             </div>
                             <div class="mb-3">
-                                <input type="email" class="form-control" placeholder="E-mail" required>
+                                <input type="email" class="form-control" name="email" placeholder="E-mail" required>
                             </div>
                             <div class="mb-3">
-                                <input type="tel" class="form-control" placeholder="Telefone" required>
+                                <input type="tel" class="form-control" name="phone" placeholder="Telefone" required>
                             </div>
                             <div class="mb-3">
-                                <input type="text" class="form-control" placeholder="CPF ou CNPJ" required>
+                                <input type="text" class="form-control" name="cpf_cnpj" placeholder="CPF ou CNPJ" required>
                             </div>
                             <div class="mb-3">
-                                <textarea class="form-control" rows="4" placeholder="Mensagem"></textarea>
+                                <textarea class="form-control" name="mensagem" rows="4" placeholder="Mensagem"></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">Enviar Mensagem</button>
                         </form>
@@ -153,6 +153,7 @@
         // Função para enviar eventos para a API do Meta
         async function sendMetaEvent(eventName, userData = {}, customData = {}) {
             try {
+                console.log('Enviando evento para Meta:', { eventName, userData, customData });
                 const response = await fetch('/api/meta-conversion', {
                     method: 'POST',
                     headers: {
@@ -168,6 +169,9 @@
                 if (!response.ok) {
                     throw new Error('Failed to send event');
                 }
+                
+                const responseData = await response.json();
+                console.log('Resposta do Meta:', responseData);
             } catch (error) {
                 console.error('Error sending event:', error);
             }
@@ -177,37 +181,51 @@
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Rastrear evento via pixel
-            fbq('track', 'Lead');
-            
-            // Rastrear evento via API de Conversões
-            const email = this.querySelector('[name="email"]')?.value;
-            const phone = this.querySelector('[name="phone"]')?.value;
-            
-            const userData = {
-                client_user_agent: navigator.userAgent
-            };
-            
-            if (email) {
-                userData.em = [sha256(email.toLowerCase().trim())];
-            }
-            
-            if (phone) {
-                userData.ph = [sha256(phone.replace(/[^0-9]/g, ''))];
-            }
-            
-            await sendMetaEvent('Lead', userData, {
-                currency: 'BRL',
-                value: 0,
-                lead_type: 'Formulário de Contato'
-            });
-            
             try {
+                // Capturar dados do formulário
+                const nome = this.querySelector('[name="nome"]').value;
+                const email = this.querySelector('[name="email"]').value;
+                const phone = this.querySelector('[name="phone"]').value;
+                const cpfCnpj = this.querySelector('[name="cpf_cnpj"]').value;
+                
+                // Rastrear evento via pixel
+                fbq('track', 'Lead', {
+                    content_name: 'Formulário de Contato',
+                    value: 0,
+                    currency: 'BRL'
+                });
+                
+                // Preparar dados para API de Conversões
+                const userData = {
+                    client_user_agent: navigator.userAgent,
+                    client_ip: null // O IP será capturado pelo servidor
+                };
+                
+                if (email) {
+                    const emailHash = await sha256(email.toLowerCase().trim());
+                    userData.em = [emailHash];
+                }
+                
+                if (phone) {
+                    const phoneClean = phone.replace(/\D/g, '');
+                    const phoneHash = await sha256(phoneClean);
+                    userData.ph = [phoneHash];
+                }
+                
+                // Enviar evento via API de Conversões
+                await sendMetaEvent('Lead', userData, {
+                    currency: 'BRL',
+                    value: 0,
+                    lead_type: 'Formulário de Contato',
+                    content_name: 'Formulário de Contato'
+                });
+
+                // Preparar dados para a API do IXC
                 const formData = {
-                    nome: this.querySelector('input[placeholder="Nome completo"]').value,
-                    email: this.querySelector('input[placeholder="E-mail"]').value,
-                    fone_celular: this.querySelector('input[placeholder="Telefone"]').value.replace(/\D/g, ''), // Remove caracteres não numéricos
-                    cnpj_cpf: this.querySelector('input[placeholder="CPF ou CNPJ"]').value.replace(/\D/g, ''), // Remove caracteres não numéricos
+                    nome: nome,
+                    email: email,
+                    fone_celular: phone.replace(/\D/g, ''),
+                    cnpj_cpf: cpfCnpj.replace(/\D/g, ''),
                     data_cadastro: new Date().toISOString().split('T')[0],
                     lead: "S",
                     ativo: "S"
@@ -248,10 +266,10 @@
                 console.error("Detalhes do erro:", error);
                 
                 // Preparar dados para WhatsApp
-                const nome = this.querySelector('input[placeholder="Nome completo"]').value;
-                const telefone = this.querySelector('input[placeholder="Telefone"]').value;
-                const cpfCnpj = this.querySelector('input[placeholder="CPF ou CNPJ"]').value;
-                const email = this.querySelector('input[placeholder="E-mail"]').value;
+                const nome = this.querySelector('[name="nome"]').value;
+                const telefone = this.querySelector('[name="phone"]').value;
+                const cpfCnpj = this.querySelector('[name="cpf_cnpj"]').value;
+                const email = this.querySelector('[name="email"]').value;
                 
                 const whatsappNumber = "5584996151588";
                 const whatsappMessage = `Olá! Segue meus dados para contato:\n\nNome: ${nome}\nTelefone: ${telefone}\nCPF/CNPJ: ${cpfCnpj}\nE-mail: ${email}\n\nGostaria de mais informações sobre os planos de internet.`;
@@ -287,7 +305,7 @@
         }
 
         // Formatação do CPF/CNPJ
-        document.querySelector('input[placeholder="CPF ou CNPJ"]').addEventListener('input', function(e) {
+        document.querySelector('input[name="cpf_cnpj"]').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length <= 11) { // CPF
                 value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
@@ -298,7 +316,7 @@
         });
 
         // Formatação do telefone
-        document.querySelector('input[placeholder="Telefone"]').addEventListener('input', function(e) {
+        document.querySelector('input[name="phone"]').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length <= 11) {
                 value = value.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");

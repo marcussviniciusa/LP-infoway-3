@@ -5,6 +5,8 @@ const PIXEL_ID = '780740704041293';
 const ACCESS_TOKEN = 'EAATYDfZBaIVgBOZCIPI6ZBZCxCoOFXMfGLptpJhCZCQkzUZBFZBwIBBdZBjzrOTPXFdZC17aXkAxyvokzJTTO7VRJiiJBt7iFK3cdmAAJZBaEJy9OX9Ys3MsNKCuW19EQ0M3nV1ZBxltssfQHjR5e13Htm0ovcUPT2r1ZCUcC8ZAYUkLbxe3Ivo9d1H4We9s4QKlqJSFf7AZDZD';
 
 module.exports = async (req, res) => {
+    console.log('Recebendo requisição para API de Conversão Meta');
+    
     // Habilitar CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,6 +25,22 @@ module.exports = async (req, res) => {
 
     try {
         const { eventName, userData = {}, customData = {} } = req.body;
+        
+        // Capturar IP do cliente
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+                        req.socket?.remoteAddress;
+                        
+        console.log('Dados recebidos:', {
+            eventName,
+            userData,
+            customData,
+            clientIp
+        });
+
+        // Adicionar IP do cliente aos dados do usuário
+        if (clientIp) {
+            userData.client_ip_address = clientIp;
+        }
 
         const eventData = {
             data: [{
@@ -33,6 +51,8 @@ module.exports = async (req, res) => {
                 custom_data: customData
             }]
         };
+
+        console.log('Enviando evento para Meta:', eventData);
 
         const url = `https://graph.facebook.com/v16.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
         
@@ -45,9 +65,14 @@ module.exports = async (req, res) => {
         });
 
         const data = await response.json();
+        console.log('Resposta da Meta:', data);
+        
         res.status(200).json(data);
     } catch (error) {
         console.error('Error sending event:', error);
-        res.status(500).json({ error: 'Failed to send event' });
+        res.status(500).json({ 
+            error: 'Failed to send event',
+            details: error.message
+        });
     }
 }
