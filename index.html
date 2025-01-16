@@ -188,12 +188,20 @@
                 const phone = this.querySelector('[name="phone"]').value;
                 const cpfCnpj = this.querySelector('[name="cpf_cnpj"]').value;
                 
-                // Rastrear evento via pixel
-                fbq('track', 'Lead', {
-                    content_name: 'Formulário de Contato',
-                    value: 0,
-                    currency: 'BRL'
-                });
+                // Rastrear evento via pixel (com tratamento de erro)
+                try {
+                    if (typeof fbq === 'function') {
+                        fbq('track', 'Lead', {
+                            content_name: 'Formulário de Contato',
+                            value: 0,
+                            currency: 'BRL'
+                        });
+                    } else {
+                        console.warn('Pixel do Facebook não encontrado');
+                    }
+                } catch (pixelError) {
+                    console.warn('Erro ao enviar evento para o pixel:', pixelError);
+                }
                 
                 // Preparar dados para API de Conversões
                 const userData = {
@@ -233,34 +241,22 @@
 
                 console.log('Dados a serem enviados:', formData);
 
-                const response = await fetch('https://ixc.infowaynet.com.br/webservice/v1/contato', {
+                const response = await fetch('/api/create-lead', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Basic MTM5OjRiZDJhZTk4Mzk3OTA5ZDFlYzEzMWE2NDQ4Y2M4MGNhOGYzYjBlNWY1OWUxYzIwMzAyYzZiM2Y5ODdmZTcyMzg=',
-                        'Accept': 'application/json',
-                        'Cookie': 'IXC_Session=k7cq9v1so4f0tsl930rom5itkd'
+                        'Content-Type': 'application/json'
                     },
-                    mode: 'no-cors',
-                    credentials: 'include',
                     body: JSON.stringify(formData)
                 });
 
-                if (response.type === 'opaque') {
-                    // No-cors mode não permite verificar o status, então vamos assumir sucesso
-                    alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
-                    this.reset();
-                    return;
-                }
-
-                const responseData = await response.text();
+                const responseData = await response.json();
                 console.log('Resposta da API:', responseData);
 
-                if (response.ok) {
+                if (responseData.success) {
                     alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
                     this.reset();
                 } else {
-                    throw new Error('Falha ao enviar dados');
+                    throw new Error(responseData.error || 'Falha ao enviar dados');
                 }
             } catch (error) {
                 console.error("Detalhes do erro:", error);
@@ -284,8 +280,16 @@
         // Adicionar rastreamento de eventos nos botões de WhatsApp
         document.querySelectorAll('a[href*="wa.me"]').forEach(button => {
             button.addEventListener('click', function() {
-                // Rastrear evento via pixel
-                fbq('track', 'Contact');
+                // Rastrear evento via pixel (com tratamento de erro)
+                try {
+                    if (typeof fbq === 'function') {
+                        fbq('track', 'Contact');
+                    } else {
+                        console.warn('Pixel do Facebook não encontrado');
+                    }
+                } catch (pixelError) {
+                    console.warn('Erro ao enviar evento para o pixel:', pixelError);
+                }
                 
                 // Rastrear evento via API de Conversões
                 sendMetaEvent('Contact', {
